@@ -33,7 +33,7 @@ function Profiles() {
           aria-expanded={open ? 'true' : undefined}
         >
           <Avatar
-            sx={{ width: 30, height: 30 }}
+            sx={{ width: 34, height: 34 }}
             alt ="KirstenTran"
             src="https://lh3.googleusercontent.com/a/ACg8ocIxiZcD01tJ5aUwlsCwJ3p-Gq8_ld2sXJVYn2QuZgo40h53ZOLZ=s288-c-no"
           />
