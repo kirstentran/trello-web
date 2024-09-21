@@ -27,13 +27,13 @@ function Profiles() {
         <IconButton
           onClick={handleClick}
           size="small"
-          sx={{ padding: 0 }}
+          sx= {{ padding: 0 }}
           aria-controls={open ? 'basic-menu-profiles' : undefined}
           aria-haspopup="true"
           aria-expanded={open ? 'true' : undefined}
         >
           <Avatar
-            sx={{ width: 34, height: 34 }}
+            sx={{ width: 36, height: 36 }}
             alt ="KirstenTran"
             src="https://lh3.googleusercontent.com/a/ACg8ocIxiZcD01tJ5aUwlsCwJ3p-Gq8_ld2sXJVYn2QuZgo40h53ZOLZ=s288-c-no"
           />
