@@ -14,6 +14,7 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { useEffect, useState } from 'react'
+import { cloneDeep } from 'lodash'
 
 import Column from './ListColumns/Column/Column'
 import Card from './ListColumns/Column/ListCards/Card/Card'
@@ -48,7 +49,11 @@ function BoardContent( { board }) {
   useEffect(() => {
     setOrderedColumns( mapOrder(board?.columns, board?.columnOrderIds, '_id') )
   }, [board])
-
+  //find a column by cardId
+  const findColumnByCardId = (cardId) => {
+    //làm dữ liệu cho hoàn chỉnh r, cập nhật ngược lại state, r chúng ta mới tạo ra cardOrderIds mới
+    return orderedColumns.find(column => column?.cards?.map(card => card._id)?.includes(cardId))
+  }
   //When start dragging (trigger), we have to know the active item id, type and data
   const handleDragStart = (event) => {
     //console.log('handleDragStart: ', event)
@@ -57,9 +62,89 @@ function BoardContent( { board }) {
     setActiveDragItemData(event?.active?.data?.current)
   }
 
+  //Trigger when dragging over
+  const handleDragOver = (event) => {
+    //Do nothing if dragging Column
+    if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN) return
+
+    //if drag card, we do more things to drag card to another column
+    //console.log('handleDragOver: ', event)
+    const { active, over } = event
+    //Make sure if there is no over, or active (drag out of the container box) just return (do nothing)
+    if (!active || !over) return
+
+    //activeDraggingCard: is a Dragging Card
+    const { id: activeDraggingCardId, data: { current:activeDraggingCardData } } = active
+    //overCard: is a Card that we are interacting with above or below the dragged card
+    const { id: overCardId} = over
+
+    //Find 2 columns based on cardId
+    const activeColumn = findColumnByCardId(activeDraggingCardId)
+    const overColumn = findColumnByCardId(overCardId)
+
+    //If there is no activeColumn or overColumn, just return (do nothing), avoid crashing web
+    if (!activeColumn || !overColumn) return
+
+    //logic process when dragging card to another column, if in the same column, do nothing
+    //This just when dragging (handleDragOver), when done dragging, it will be handled in handleDragEnd
+    if (activeColumn._id !== overColumn._id) {
+      setOrderedColumns (prevColumns => {
+        //find the index of the overCard in the destination column (when card is dragged to)
+        const overCardIndex = overColumn?.cards?.findIndex(card => card._id === overCardId)
+
+        //logical calculation the new cardIndex (above or below the overCard)
+        //Take the source code of the primitive library
+        let newCardIndex
+        const isBelowOverItem = active.rect.current.translated &&
+          active.rect.current.translated.top > over.rect.top + over.rect.height
+        const modifier = isBelowOverItem ? 1 : 0
+
+        newCardIndex = overCardIndex >= 0 ? overCardIndex + modifier : overColumn?.cards?.length + 1
+
+        //Clone array old orderedColumnsState into a new one to process data then return,
+        // and update the new orderedColumnsState
+        const nextColumns = cloneDeep (prevColumns)
+        const nextActiveColumn = nextColumns.find(column => column._id === activeColumn._id)
+        const nextOverColumn = nextColumns.find(column => column._id === overColumn._id)
+
+        //Old column
+        if (nextActiveColumn) {
+          //Remove card from the active column (aka old column), the moment when drag card out
+          //of that column into a new column
+          nextActiveColumn.cards = nextActiveColumn.cards.filter(card => card._id !== activeDraggingCardId)
+
+          //update the new array cardOrderIds for correct data
+          nextActiveColumn.cardOrderIds = nextActiveColumn.cards.map(card => card._id)
+        }
+
+        //New column
+        if (nextOverColumn) {
+          //check if the dragging card exists in the overColumn, if yes, delete it first
+          nextOverColumn.cards = nextOverColumn.cards.filter(card => card._id !== activeDraggingCardId)
+
+          //Next, insert the dragging card into overColumn (based on newCardIndex)
+          nextOverColumn.cards = nextOverColumn.cards.toSpliced(newCardIndex, 0, activeDraggingCardData)
+
+          //update the new array cardOrderIds for correct data
+          nextOverColumn.cardOrderIds = nextOverColumn.cards.map(card => card._id)
+        }
+
+        console.log('nextColumns: ', nextColumns)
+        return nextColumns
+      })
+    }
+  }
+
   //When end dragging (drop), we have to know the active item id, type and data
   const handleDragEnd = (event) => {
     //console.log('handleDragEnd: ', event)
+
+    if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.CARD) {
+      // console.log('DragDrop Action, do nothing now')
+      return
+    }
+    //Make sure if there is no over, or active (drag out of the container box) just return (do nothing)
+    //Avoiding page crashing
     const { active, over } = event
 
     //if there is no over, just drop nowhere, return
@@ -90,13 +175,14 @@ function BoardContent( { board }) {
     setActiveDragItemData(null)
   }
 
-  const  customDropAnimation = {
+  const customDropAnimation = {
     sideEffects: defaultDropAnimationSideEffects({ styles: { active:{ opacity: '0.5' }}})
   }
 
   return (
     <DndContext
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
       sensors={sensors}
     >
