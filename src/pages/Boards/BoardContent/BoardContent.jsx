@@ -10,7 +10,8 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
-  defaultDropAnimationSideEffects
+  defaultDropAnimationSideEffects,
+  closestCorners
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { useEffect, useState } from 'react'
@@ -176,7 +177,7 @@ function BoardContent( { board }) {
   }
 
   const customDropAnimation = {
-    sideEffects: defaultDropAnimationSideEffects({ styles: { active:{ opacity: '0.5' }}})
+    sideEffects: defaultDropAnimationSideEffects({ styles: { active:{ opacity: '0.5' } } })
   }
 
   return (
@@ -184,7 +185,11 @@ function BoardContent( { board }) {
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      //Sensor explained in video 30
       sensors={sensors}
+      //Thuat toan phat hien va xu ly va cham( neu k co no thi card va cover lon se k keo qua dc column khac)
+      //vi luc nay no dang bi conflict giua card va column, we use closestCorners instead of closestCenter
+      collisionDetection={closestCorners}
     >
       <Box sx={{
         backgroundColor: (theme) => (theme.palette.mode === 'dark' ? '#34495e': '#1976d2'),
