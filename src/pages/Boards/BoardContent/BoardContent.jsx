@@ -12,9 +12,9 @@ import {
   DragOverlay,
   defaultDropAnimationSideEffects,
   closestCorners,
-  closestCenter,
+  //closestCenter,
   pointerWithin,
-  rectIntersection,
+  //rectIntersection,
   getFirstCollision
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
@@ -288,28 +288,32 @@ function BoardContent( { board }) {
       return closestCorners ({ ...args })
     }
 
-    //Tim cac diem giao nhau va cham voi con tro
+    //Tim cac diem giao nhau va cham voi, tra ve mot mang cac va cham (intersection voi con tro)
     //Disable Eslint la dc
     const pointerIntersections = pointerWithin (args)
 
+    //Trong video 37.1, neu pointerIntersections la mang rong, we will do nothing
+    if (!pointerIntersections?.length) return
+
+
     //Thuat toan phat hien va cham se tra ve mot mang cac va cham o day
-    const intersections = !!pointerIntersections?.length
-      ? pointerIntersections
-      : rectIntersection(args)
+    //  k can buoc nay nua (vid 37.1)
+    // const intersections = !!pointerIntersections?.length
+    //   ? pointerIntersections
+    //   : rectIntersection(args)
 
-    //Tim overId dau tien trong dam intersection o tren, dung let dee sau nay co the ghi de lai dc gia tri
-    let overId = getFirstCollision(intersections, 'id')
-
+    //Tim overId dau tien trong dam pointerIntersections o tren, dung let dee sau nay co the ghi de lai dc gia tri
+    let overId = getFirstCollision(pointerIntersections, 'id')
     if (overId ) {
       //Video 37 de fix doan flickering bug.
       //Neu cai over no la column thi se tim toi cai cardId gan nhat ben trong khu vuc
       //va cham do dua vao thuat toan phat hien va cham closestCenter hoac closestCorners deu dc.
-      //Tuy nhien dung closestCenter se muot ma hon
+      //Tuy nhien dung closestCorners se muot ma hon
       const checkColumn = orderedColumns.find(column => column._id === overId)
       if (checkColumn) {
         //console.log('overId before: ', overId)
 
-        overId = closestCenter ({
+        overId = closestCorners ({
           ...args,
           droppableContainers: args.droppableContainers.filter(container => {
             return (container.id !== overId) && (checkColumn?.cardOderIds?.includes(container.id))
