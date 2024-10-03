@@ -46,6 +46,7 @@ function BoardContent( { board }) {
   const [activeDragItemId, setActiveDragItemId] = useState(null)
   const [activeDragItemType, setActiveDragItemType] = useState(null)
   const [activeDragItemData, setActiveDragItemData] = useState(null)
+  const [oldColumnWhenDraggingCard, setOldColumnWhenDraggingCard] = useState(null)
 
   useEffect(() => {
     setOrderedColumns( mapOrder(board?.columns, board?.columnOrderIds, '_id') )
@@ -61,6 +62,11 @@ function BoardContent( { board }) {
     setActiveDragItemId(event?.active?.id)
     setActiveDragItemType(event?.active?.data?.current?.columnId ? ACTIVE_DRAG_ITEM_TYPE.CARD : ACTIVE_DRAG_ITEM_TYPE.COLUMN)
     setActiveDragItemData(event?.active?.data?.current)
+
+    //if drag card, we do actions to set the value for oldColumn
+    if (event?.active?.data?.current?.columnId) {
+      setOldColumnWhenDraggingCard(findColumnByCardId(event?.active?.id))
+    }
   }
 
   //Trigger when dragging over
@@ -71,13 +77,14 @@ function BoardContent( { board }) {
     //if drag card, we do more things to drag card to another column
     //console.log('handleDragOver: ', event)
     const { active, over } = event
+
     //Make sure if there is no over, or active (drag out of the container box) just return (do nothing)
     if (!active || !over) return
 
     //activeDraggingCard: is a Dragging Card
     const { id: activeDraggingCardId, data: { current:activeDraggingCardData } } = active
     //overCard: is a Card that we are interacting with above or below the dragged card
-    const { id: overCardId} = over
+    const { id: overCardId } = over
 
     //Find 2 columns based on cardId
     const activeColumn = findColumnByCardId(activeDraggingCardId)
@@ -140,40 +147,91 @@ function BoardContent( { board }) {
   const handleDragEnd = (event) => {
     //console.log('handleDragEnd: ', event)
 
-    if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.CARD) {
-      // console.log('DragDrop Action, do nothing now')
-      return
-    }
     //Make sure if there is no over, or active (drag out of the container box) just return (do nothing)
     //Avoiding page crashing
     const { active, over } = event
 
-    //if there is no over, just drop nowhere, return
-    if (!over) return
+    //if there is no over and no active, just drop nowhere, return
+    if (!active || !over ) return
 
-    //if the active column is different from the over column
-    if (active.id !== over.id) {
-      // Find index of the old column from active
-      const oldIndex = orderedColumns.findIndex(c => c._id === active.id)
-      // Find index of the new position from over
-      const newIndex = orderedColumns.findIndex(c => c._id === over.id)
-      //dndOrderedColumns is the new column after drag and drop
-      //Use arrayMove to sort the array Columns at first
-      const dndOrderedColumns = arrayMove(orderedColumns, oldIndex, newIndex)
+    //xu ly keo the card
+    if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.CARD) {
+      //activeDraggingCard: is a Dragging Card
+      const { id: activeDraggingCardId, data: { current:activeDraggingCardData } } = active
+      //overCard: is a Card that we are interacting with above or below the dragged card
+      const { id: overCardId } = over
 
-      // const dndOrderedColumnsIds = dndOrderedColumns.map(c => c._id)
- 
-      //Hai dong console log sau dung de xu ly du lieu goi API
-      // // console.log( 'dndOrderedColumns: ', dndOrderedColumns)
-      // // console.log( 'dndOrderedColumnsIds: ', dndOrderedColumnsIds)
+      //Find 2 columns based on cardId
+      const activeColumn = findColumnByCardId(activeDraggingCardId)
+      const overColumn = findColumnByCardId(overCardId)
 
-      //update the new column after drag and drop
-      setOrderedColumns(dndOrderedColumns)
+      //If there is no activeColumn or overColumn, just return (do nothing), avoid crashing web
+      if (!activeColumn || !overColumn) return
+
+      //kéo qua 2 columns khác nhau
+      //Phải dùng tới activeDragItemData.columnId or oldColumnWhenDraggingCard._id (set vào state từ bước handleDragStart), 
+      //chứ k phải activeData trong scope handleDragEnd này vì sau khi đi qua onDragOver tới đây là state của card 
+      //dã bị updated một lần rồi
+      if (oldColumnWhenDraggingCard._id !== overColumn._id) {
+        //
+      }
+      else {
+        //Drag drop card in the same column
+
+        // Get index of the old column from oldColumnWhenDraggingCard
+        const oldCardIndex = oldColumnWhenDraggingCard?.cards?.findIndex(c => c._id === activeDragItemId)
+        // Find index of the new position from over
+        const newCardIndex = overColumn?.cards?.findIndex(c => c._id === overCardId)
+
+        //use arrayMove to keo card trong 1 cai column ti tuong tu logic cua keo column trong mot
+        //cai boardContent
+        const dndOrderedCards = arrayMove(oldColumnWhenDraggingCard?.cards, oldCardIndex, newCardIndex)
+
+        setOrderedColumns(prevColumns => {
+        //Clone array old orderedColumnsState into a new one to process data then return,
+        // and update the new orderedColumnsState
+          const nextColumns = cloneDeep (prevColumns)
+
+          //Find the column that we want to drag
+          const targetColumn = nextColumns.find(column => column._id === overColumn._id)
+
+          //Update 2 new values: cards and cardOrderIds in the targetColumn
+          targetColumn.cards = dndOrderedCards
+          targetColumn.cardOrderIds = dndOrderedCards.map(card => card._id)
+
+          //Tra ve gia tri state moi chuan vi tri
+          return nextColumns
+        })
+      }
     }
 
+    //xu ly keo tha column trong 1 cai boardContent
+    if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN) {
+    //if the active column is different from the over column
+      if (active.id !== over.id) {
+        // Find index of the old column from active
+        const oldColumnIndex = orderedColumns.findIndex(c => c._id === active.id)
+        // Find index of the new position from over
+        const newColumnIndex = orderedColumns.findIndex(c => c._id === over.id)
+        //dndOrderedColumns is the new column after drag and drop
+        //Use arrayMove to sort the array Columns at first
+
+        const dndOrderedColumns = arrayMove(orderedColumns, oldColumnIndex, newColumnIndex)
+
+        //Hai dong console log sau dung de xu ly du lieu goi API
+        // // console.log( 'dndOrderedColumns: ', dndOrderedColumns)
+        // // console.log( 'dndOrderedColumnsIds: ', dndOrderedColumnsIds)
+
+        //update the new column after drag and drop
+        setOrderedColumns(dndOrderedColumns)
+      }
+    }
+
+    //the data after drag and drop, always have been reset to null
     setActiveDragItemId(null)
     setActiveDragItemType(null)
     setActiveDragItemData(null)
+    setOldColumnWhenDraggingCard(null)
   }
 
   const customDropAnimation = {
@@ -187,6 +245,7 @@ function BoardContent( { board }) {
       onDragEnd={handleDragEnd}
       //Sensor explained in video 30
       sensors={sensors}
+
       //Thuat toan phat hien va xu ly va cham( neu k co no thi card va cover lon se k keo qua dc column khac)
       //vi luc nay no dang bi conflict giua card va column, we use closestCorners instead of closestCenter
       collisionDetection={closestCorners}
