@@ -11,11 +11,15 @@ import {
   useSensors,
   DragOverlay,
   defaultDropAnimationSideEffects,
-  closestCorners
+  closestCorners,
+  closestCenter,
+  pointerWithin,
+  rectIntersection,
+  getFirstCollision
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import { useEffect, useState } from 'react'
-import { cloneDeep } from 'lodash'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { cloneDeep, over } from 'lodash'
 
 import Column from './ListColumns/Column/Column'
 import Card from './ListColumns/Column/ListCards/Card/Card'
@@ -47,6 +51,9 @@ function BoardContent( { board }) {
   const [activeDragItemType, setActiveDragItemType] = useState(null)
   const [activeDragItemData, setActiveDragItemData] = useState(null)
   const [oldColumnWhenDraggingCard, setOldColumnWhenDraggingCard] = useState(null)
+
+  //Diem va cham cuoi cung (Xu ly thuat toan phat hien va cham), video 37
+  const lastOverId = useRef(null)
 
   useEffect(() => {
     setOrderedColumns( mapOrder(board?.columns, board?.columnOrderIds, '_id') )
@@ -120,7 +127,6 @@ function BoardContent( { board }) {
 
   //When start dragging (trigger), we have to know the active item id, type and data
   const handleDragStart = (event) => {
-    //console.log('handleDragStart: ', event)
     setActiveDragItemId(event?.active?.id)
     setActiveDragItemType(event?.active?.data?.current?.columnId ? ACTIVE_DRAG_ITEM_TYPE.CARD : ACTIVE_DRAG_ITEM_TYPE.COLUMN)
     setActiveDragItemData(event?.active?.data?.current)
@@ -172,7 +178,6 @@ function BoardContent( { board }) {
 
   //When end dragging (drop), we have to know the active item id, type and data
   const handleDragEnd = (event) => {
-    //console.log('handleDragEnd: ', event)
 
     //Make sure if there is no over, or active (drag out of the container box) just return (do nothing)
     //Avoiding page crashing
@@ -273,6 +278,54 @@ function BoardContent( { board }) {
     sideEffects: defaultDropAnimationSideEffects({ styles: { active:{ opacity: '0.5' } } })
   }
 
+  //chúng ta sẽ custom laị chiến lược/ thuật toán phát hiện va chạm tối ưu cho việc kéo thả card giữ nhiều 
+  //columns (video 37 fix bug important)
+  // args = arguments = Các đối số, tham số
+  const collisionDetectionStrategy = useCallback((args) => {
+
+    //Truong hop keo column thi dung thuat toan closestCorners la chuan nhat
+    if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN) {
+      return closestCorners ({ ...args })
+    }
+
+    //Tim cac diem giao nhau va cham voi con tro
+    //Disable Eslint la dc
+    const pointerIntersections = pointerWithin (args)
+
+    //Thuat toan phat hien va cham se tra ve mot mang cac va cham o day
+    const intersections = !!pointerIntersections?.length
+      ? pointerIntersections
+      : rectIntersection(args)
+
+    //Tim overId dau tien trong dam intersection o tren, dung let dee sau nay co the ghi de lai dc gia tri
+    let overId = getFirstCollision(intersections, 'id')
+
+    if (overId ) {
+      //Video 37 de fix doan flickering bug.
+      //Neu cai over no la column thi se tim toi cai cardId gan nhat ben trong khu vuc
+      //va cham do dua vao thuat toan phat hien va cham closestCenter hoac closestCorners deu dc.
+      //Tuy nhien dung closestCenter se muot ma hon
+      const checkColumn = orderedColumns.find(column => column._id === overId)
+      if (checkColumn) {
+        //console.log('overId before: ', overId)
+
+        overId = closestCenter ({
+          ...args,
+          droppableContainers: args.droppableContainers.filter(container => {
+            return (container.id !== overId) && (checkColumn?.cardOderIds?.includes(container.id))
+          })
+        })[0]?.id
+        //console.log('overId after: ', overId)
+      }
+
+      lastOverId.current = overId
+      return [{ id: overId }]
+    }
+
+    //Neu overId la null thi tra ve mang rong, tranh bug crash trang
+    return lastOverId.current ? [{ id: lastOverId.current }] : []
+  }, [activeDragItemType, orderedColumns])
+
   return (
     <DndContext
       onDragStart={handleDragStart}
@@ -283,7 +336,12 @@ function BoardContent( { board }) {
 
       //Thuat toan phat hien va xu ly va cham( neu k co no thi card va cover lon se k keo qua dc column khac)
       //vi luc nay no dang bi conflict giua card va column, we use closestCorners instead of closestCenter
-      collisionDetection={closestCorners}
+      //update video 37: neu chi dung closestCorners se co bug flickering + sai lech du lieu
+      //fixed in video 37
+      //collisionDetection={closestCorners}
+
+      //Tu custom nang cao thuat toan phat hien va cham (video fic bug so 37)
+      collisionDetection={collisionDetectionStrategy}
     >
       <Box sx={{
         backgroundColor: (theme) => (theme.palette.mode === 'dark' ? '#34495e': '#1976d2'),
