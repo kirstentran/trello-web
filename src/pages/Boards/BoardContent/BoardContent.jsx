@@ -19,7 +19,8 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { cloneDeep, over } from 'lodash'
+import { cloneDeep, isEmpty } from 'lodash'
+import { generatePlaceHolderCard } from '~/utils/formatters'
 
 import Column from './ListColumns/Column/Column'
 import Card from './ListColumns/Column/ListCards/Card/Card'
@@ -95,6 +96,12 @@ function BoardContent( { board }) {
         //of that column into a new column
         nextActiveColumn.cards = nextActiveColumn.cards.filter(card => card._id !== activeDraggingCardId)
 
+        //Them PlaceholderCard vao neu column rong: Bi keo het card di, k con card nao trong column
+        if (isEmpty(nextActiveColumn.cards)) {
+          nextActiveColumn.cards = [generatePlaceHolderCard(nextActiveColumn)]
+        }
+
+
         //update the new array cardOrderIds for correct data
         nextActiveColumn.cardOrderIds = nextActiveColumn.cards.map(card => card._id)
       }
@@ -116,6 +123,9 @@ function BoardContent( { board }) {
           0,
           rebuild_activeDraggingCardData
         )
+
+        //Remove PlaceholderCard if it exists in the overColumn
+        nextOverColumn.cards = nextOverColumn.cards.filter(card => !card.FE_PlaceholderCard)
 
         //update the new array cardOrderIds for correct data
         nextOverColumn.cardOrderIds = nextOverColumn.cards.map(card => card._id)
