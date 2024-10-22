@@ -60,7 +60,7 @@ function AppBar() {
           </Button>
         </Box>
       </Box>
-      
+
       <Box sx ={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <TextField
           id="outlined-search"
@@ -76,12 +76,14 @@ function AppBar() {
               </InputAdornment>
             ),
             endAdornment: (
-              <CloseIcon
-                fontSize='small'
-                sx={{
-                  color: searchValue ? 'white' : 'transparent', cursor: 'pointer' }}
-                onClick ={() => setSearchValue('')}
-              />
+              <InputAdornment position="end">
+                <CloseIcon
+                  fontSize='small'
+                  sx={{
+                    color: searchValue ? 'white' : 'transparent', cursor: 'pointer' }}
+                  onClick ={() => setSearchValue('')}
+                />
+              </InputAdornment>
             )
           }}
           sx={{
