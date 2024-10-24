@@ -30,7 +30,7 @@ const ACTIVE_DRAG_ITEM_TYPE = {
   COLUMN: 'ACTIVE_DRAG_ITEM_TYPE_COLUMN',
   CARD: 'ACTIVE_DRAG_ITEM_TYPE_CARD'
 }
-function BoardContent( { board }) {
+function BoardContent( { board, createNewColumn, createNewCard }) {
   //Ask the mouse move 10px, the activate the event of drag and drop, fix the click the call the event
   // const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 10 } })
   //if use pointerSensor will have some bugs, we have to use with CSS attribute touchAction: 'none' in Column.jsx
@@ -364,7 +364,11 @@ function BoardContent( { board }) {
         height: (theme) => theme.trello.boardContentHeight,
         p: '10px 0'
       }}>
-        <ListColumns columns ={orderedColumns} />
+        <ListColumns
+          columns ={orderedColumns}
+          createNewColumn ={createNewColumn}
+          createNewCard = {createNewCard}
+        />
         <DragOverlay dropAnimation={customDropAnimation}>
           {(!activeDragItemType) && null }
           {(activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN) && <Column column = {activeDragItemData}/>}
