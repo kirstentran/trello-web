@@ -30,7 +30,7 @@ const ACTIVE_DRAG_ITEM_TYPE = {
   COLUMN: 'ACTIVE_DRAG_ITEM_TYPE_COLUMN',
   CARD: 'ACTIVE_DRAG_ITEM_TYPE_CARD'
 }
-function BoardContent( { board, createNewColumn, createNewCard }) {
+function BoardContent( { board, createNewColumn, createNewCard, moveColumns }) {
   //Ask the mouse move 10px, the activate the event of drag and drop, fix the click the call the event
   // const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 10 } })
   //if use pointerSensor will have some bugs, we have to use with CSS attribute touchAction: 'none' in Column.jsx
@@ -269,9 +269,8 @@ function BoardContent( { board, createNewColumn, createNewCard }) {
 
         const dndOrderedColumns = arrayMove(orderedColumns, oldColumnIndex, newColumnIndex)
 
-        //Hai dong console log sau dung de xu ly du lieu goi API
-        // // console.log( 'dndOrderedColumns: ', dndOrderedColumns)
-        // // console.log( 'dndOrderedColumnsIds: ', dndOrderedColumnsIds)
+        //cmt video 70 7:50
+        moveColumns(dndOrderedColumns)
 
         //update the new column after drag and drop
         setOrderedColumns(dndOrderedColumns)
@@ -368,6 +367,7 @@ function BoardContent( { board, createNewColumn, createNewCard }) {
           columns ={orderedColumns}
           createNewColumn ={createNewColumn}
           createNewCard = {createNewCard}
+          moveColumns = {moveColumns}
         />
         <DragOverlay dropAnimation={customDropAnimation}>
           {(!activeDragItemType) && null }
