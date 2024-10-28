@@ -1,7 +1,5 @@
 import Box from '@mui/material/Box'
 import ListColumns from './ListColumns/ListColumns'
-import { mapOrder } from '~/utils/sorts'
-
 import {
   DndContext,
   //PointerSensor,
@@ -30,7 +28,7 @@ const ACTIVE_DRAG_ITEM_TYPE = {
   COLUMN: 'ACTIVE_DRAG_ITEM_TYPE_COLUMN',
   CARD: 'ACTIVE_DRAG_ITEM_TYPE_CARD'
 }
-function BoardContent( { board, createNewColumn, createNewCard, moveColumns }) {
+function BoardContent( { board, createNewColumn, createNewCard, moveColumns, moveCardInTheSameColumn }) {
   //Ask the mouse move 10px, the activate the event of drag and drop, fix the click the call the event
   // const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 10 } })
   //if use pointerSensor will have some bugs, we have to use with CSS attribute touchAction: 'none' in Column.jsx
@@ -58,7 +56,8 @@ function BoardContent( { board, createNewColumn, createNewCard, moveColumns }) {
   const lastOverId = useRef(null)
 
   useEffect(() => {
-    setOrderedColumns( mapOrder(board?.columns, board?.columnOrderIds, '_id') )
+    //column đã đc sx ở component cha cao nhất, video 71
+    setOrderedColumns( board.columns )
   }, [board])
   //find a column by cardId
   const findColumnByCardId = (cardId) => {
@@ -237,6 +236,7 @@ function BoardContent( { board, createNewColumn, createNewCard, moveColumns }) {
         //use arrayMove to keo card trong 1 cai column ti tuong tu logic cua keo column trong mot
         //cai boardContent
         const dndOrderedCards = arrayMove(oldColumnWhenDraggingCard?.cards, oldCardIndex, newCardIndex)
+        const dndOrderedCardIds = dndOrderedCards.map(card => card._id)
 
         setOrderedColumns(prevColumns => {
         //Clone array old orderedColumnsState into a new one to process data then return,
@@ -248,11 +248,13 @@ function BoardContent( { board, createNewColumn, createNewCard, moveColumns }) {
 
           //Update 2 new values: cards and cardOrderIds in the targetColumn
           targetColumn.cards = dndOrderedCards
-          targetColumn.cardOrderIds = dndOrderedCards.map(card => card._id)
+          targetColumn.cardOrderIds = dndOrderedCardIds
 
           //Tra ve gia tri state moi chuan vi tri
           return nextColumns
         })
+        moveCardInTheSameColumn(dndOrderedCards, dndOrderedCardIds, oldColumnWhenDraggingCard._id)
+
       }
     }
 
@@ -269,11 +271,11 @@ function BoardContent( { board, createNewColumn, createNewCard, moveColumns }) {
 
         const dndOrderedColumns = arrayMove(orderedColumns, oldColumnIndex, newColumnIndex)
 
-        //cmt video 70 7:50
-        moveColumns(dndOrderedColumns)
-
         //update the new column after drag and drop
         setOrderedColumns(dndOrderedColumns)
+
+        //cmt video 70 7:50
+        moveColumns(dndOrderedColumns)
       }
     }
 

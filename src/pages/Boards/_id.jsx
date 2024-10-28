@@ -3,10 +3,19 @@ import Container from '@mui/material/Container'
 import AppBar from '~/components/AppBar/AppBar'
 import BoardBar from './BoardBar/BoardBar'
 import BoardContent from './BoardContent/BoardContent'
+import { mapOrder } from '~/utils/sorts'
 //import { mockData } from '~/apis/mock-data'
-import { fetchBoardDetailsAPI, createNewColumnAPI, createNewCardAPI, updateBoardDetailsAPI } from '~/apis'
+import {
+  fetchBoardDetailsAPI,
+  createNewColumnAPI,
+  createNewCardAPI,
+  updateBoardDetailsAPI,
+  updateColumnDetailsAPI } from '~/apis'
 import { generatePlaceHolderCard } from '~/utils/formatters'
 import { isEmpty } from 'lodash'
+import Box from '@mui/material/Box'
+import CircularProgress from '@mui/material/CircularProgress';
+import { Typography } from '@mui/material'
 
 
 function Board() {
@@ -19,12 +28,19 @@ function Board() {
 
     //Goi API o day, API can boardId
     fetchBoardDetailsAPI(boardId).then(board => {
-      //Khi f5 trang, can xử lý vấn đề kéo thả vào một column rỗng
+      //sap xep thu tự các column luôn trươc ở đây trước khi đưa dữ liệu xuống bên dưới các component con
+      board.columns = mapOrder(board.columns, board.columnOrderIds, '_id')
+
       board.columns.forEach(column => {
         //Cần xử lý vấn đề kéo thả vào một column rỗng (video 37.2)
+        //Khi f5 trang, can xử lý vấn đề kéo thả vào một column rỗng
         if (isEmpty(column.cards)) {
           column.cards = [generatePlaceHolderCard(column)]
           column.cardOrderIds = [generatePlaceHolderCard(column)._id]
+        }
+        else {
+          //sắp xếp thứ tự các card luôn ở đây trước khi đưa dữ liệu xuống bên dưới các component con
+          column.cards = mapOrder(column.cards, column.cardOrderIds, '_id')
         }
       })
 
@@ -59,21 +75,21 @@ function Board() {
     })
 
 
-
     //CAp nhat lai state board
     //Chúng ta tự làm đúng lại state data board (thay vì phải gọi lại API fetchBoardDetailsAPI)
     //Tuong tu nhu createNewColumn
     const newBoard = { ...board }
     //Tim ra column chua no truoc roi moi cap nhat lai mang cards va cardOrderIds
-    const columnToUpdate = newBoard.columns.find(column => column._id === newCardData.columnId)
+    const columnToUpdate = newBoard.columns.find(column => column._id === createdCard.columnId)
     if (columnToUpdate) {
       columnToUpdate.cards.push(createdCard)
       columnToUpdate.cardOrderIds.push(createdCard._id)
     }
+    setBoard(newBoard)
   }
 
   //Function này có nhiệm vụ gọi API va xun ly khi keo tha column xong xuoi
-  const moveColumns = async (dndOrderedColumns) => {
+  const moveColumns = (dndOrderedColumns) => {
     const dndOrderedColumnsIds = dndOrderedColumns.map(c => c._id)
     const newBoard = { ...board }
     newBoard.columns = dndOrderedColumns
@@ -81,7 +97,38 @@ function Board() {
     setBoard(newBoard)
 
     //Goi API update board
-    await updateBoardDetailsAPI(newBoard._id, { columnOrderIds: dndOrderedColumnsIds })
+    updateBoardDetailsAPI(newBoard._id, { columnOrderIds: dndOrderedColumnsIds })
+  }
+
+  //FUnction nay có nhiệm vụ gọi API va xử lý khi kéo thả card trong cùng một column
+  const moveCardInTheSameColumn =(dndOrderedCards, dndOrderedCardIds, columnId) => {
+    //GOi API Update column
+    const newBoard = { ...board }
+    const columnToUpdate = newBoard.columns.find(column => column._id ===columnId)
+    if (columnToUpdate) {
+      columnToUpdate.cards = dndOrderedCards
+      columnToUpdate.cardOrderIds = dndOrderedCardIds
+    }
+    setBoard(newBoard)
+
+    //Goi API update column
+    updateColumnDetailsAPI( columnId, { cardOrderIds: dndOrderedCardIds })
+  }
+
+  if (!board) {
+    return (
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
+        width: '100vw',
+        height: '100vh'
+      }}>
+        <CircularProgress />
+        <Typography>Loading Board...</Typography>
+      </Box>
+    )
   }
 
   return (
@@ -93,6 +140,7 @@ function Board() {
         createNewColumn ={createNewColumn}
         createNewCard ={createNewCard}
         moveColumns ={moveColumns}
+        moveCardInTheSameColumn={moveCardInTheSameColumn}
       />
     </Container>
   )
