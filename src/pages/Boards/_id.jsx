@@ -10,7 +10,9 @@ import {
   createNewColumnAPI,
   createNewCardAPI,
   updateBoardDetailsAPI,
-  updateColumnDetailsAPI } from '~/apis'
+  updateColumnDetailsAPI,
+  moveCardToDifferentColumnAPI
+} from '~/apis'
 import { generatePlaceHolderCard } from '~/utils/formatters'
 import { isEmpty } from 'lodash'
 import Box from '@mui/material/Box'
@@ -90,6 +92,7 @@ function Board() {
 
   //Function này có nhiệm vụ gọi API va xun ly khi keo tha column xong xuoi
   const moveColumns = (dndOrderedColumns) => {
+    //Update cho chuẩn dữ liệu state board
     const dndOrderedColumnsIds = dndOrderedColumns.map(c => c._id)
     const newBoard = { ...board }
     newBoard.columns = dndOrderedColumns
@@ -113,6 +116,25 @@ function Board() {
 
     //Goi API update column
     updateColumnDetailsAPI( columnId, { cardOrderIds: dndOrderedCardIds })
+  }
+
+  // video 73 comment dai
+  const moveCardToDifferentColumn = (currentCardId, prevColumnId, nextColumnId, dndOrderedColumns) => {
+    //Update cho chuẩn dữ liệu state board
+    const dndOrderedColumnsIds = dndOrderedColumns.map(c => c._id)
+    const newBoard = { ...board }
+    newBoard.columns = dndOrderedColumns
+    newBoard.columnOrderIds = dndOrderedColumnsIds
+    setBoard(newBoard)
+
+    //Goi API xu ly phia backend
+    moveCardToDifferentColumnAPI({
+      currentCardId,
+      prevColumnId,
+      prevCardOrderIds: dndOrderedColumns.find(c => c._id === prevColumnId)?.cardOrderIds,
+      nextColumnId,
+      nextCardOrderIds: dndOrderedColumns.find(c => c._id === nextColumnId)?.cardOrderIds
+    })
   }
 
   if (!board) {
@@ -141,6 +163,7 @@ function Board() {
         createNewCard ={createNewCard}
         moveColumns ={moveColumns}
         moveCardInTheSameColumn={moveCardInTheSameColumn}
+        moveCardToDifferentColumn={moveCardToDifferentColumn}
       />
     </Container>
   )

@@ -28,7 +28,15 @@ const ACTIVE_DRAG_ITEM_TYPE = {
   COLUMN: 'ACTIVE_DRAG_ITEM_TYPE_COLUMN',
   CARD: 'ACTIVE_DRAG_ITEM_TYPE_CARD'
 }
-function BoardContent( { board, createNewColumn, createNewCard, moveColumns, moveCardInTheSameColumn }) {
+function BoardContent( {
+  board,
+  createNewColumn,
+  createNewCard,
+  moveColumns,
+  moveCardInTheSameColumn,
+  moveCardToDifferentColumn
+})
+{
   //Ask the mouse move 10px, the activate the event of drag and drop, fix the click the call the event
   // const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 10 } })
   //if use pointerSensor will have some bugs, we have to use with CSS attribute touchAction: 'none' in Column.jsx
@@ -65,7 +73,7 @@ function BoardContent( { board, createNewColumn, createNewCard, moveColumns, mov
     return orderedColumns.find(column => column?.cards?.map(card => card._id)?.includes(cardId))
   }
 
-  //Function chung xu ly viec cap nhat lai state trong truong hop duy chuyen card giua cac column khac nhau
+  //khoi tao Function chung xu ly viec cap nhat lai state trong truong hop duy chuyen card giua cac column khac nhau
   const moveCardBetweenDifferentColumns = (
     overColumn,
     overCardId,
@@ -73,7 +81,8 @@ function BoardContent( { board, createNewColumn, createNewCard, moveColumns, mov
     over,
     activeColumn,
     activeDraggingCardId,
-    activeDraggingCardData
+    activeDraggingCardData,
+    triggerFrom
   ) => {
     setOrderedColumns (prevColumns => {
       //find the index of the overCard in the destination column (when card is dragged to)
@@ -131,6 +140,17 @@ function BoardContent( { board, createNewColumn, createNewCard, moveColumns, mov
         nextOverColumn.cardOrderIds = nextOverColumn.cards.map(card => card._id)
       }
 
+      //Nếu function này đc gọi từ handleDragEnd nghĩa là đã kéo thả xong, lúc này mới xử lý API 1 lần ở đây
+      if (triggerFrom === 'handleDragEnd') {
+        //comment video 72 17:11
+        moveCardToDifferentColumn(
+          activeDraggingCardId,
+          oldColumnWhenDraggingCard._id,
+          nextOverColumn._id,
+          nextColumns
+        )
+      }
+
       return nextColumns
     })
   }
@@ -181,7 +201,8 @@ function BoardContent( { board, createNewColumn, createNewCard, moveColumns, mov
         over,
         activeColumn,
         activeDraggingCardId,
-        activeDraggingCardData
+        activeDraggingCardData,
+        'handleDragOver'
       )
     }
   }
@@ -222,7 +243,8 @@ function BoardContent( { board, createNewColumn, createNewCard, moveColumns, mov
           over,
           activeColumn,
           activeDraggingCardId,
-          activeDraggingCardData
+          activeDraggingCardData,
+          'handleDragEnd'
         )
       }
       else {
