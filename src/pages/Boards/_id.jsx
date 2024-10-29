@@ -84,9 +84,16 @@ function Board() {
     //Tim ra column chua no truoc roi moi cap nhat lai mang cards va cardOrderIds
     const columnToUpdate = newBoard.columns.find(column => column._id === createdCard.columnId)
     if (columnToUpdate) {
-      columnToUpdate.cards.push(createdCard)
-      columnToUpdate.cardOrderIds.push(createdCard._id)
+      //Nếu column chưa có card nào thì xóa đi card place holder, vì bản chất làm FE cho column đang chứa 1 PLACEHOLDER
+      if (columnToUpdate.cards.some(card => card.FE_PlaceholderCard)) {
+        columnToUpdate.cards = [createdCard]
+        columnToUpdate.cardOrderIds = [createdCard._id]
+      } else {
+        columnToUpdate.cards.push(createdCard)
+        columnToUpdate.cardOrderIds.push(createdCard._id)
+      }
     }
+
     setBoard(newBoard)
   }
 
@@ -128,10 +135,16 @@ function Board() {
     setBoard(newBoard)
 
     //Goi API xu ly phia backend
+    let prevCardOrderIds = dndOrderedColumns.find(c => c._id === prevColumnId)?.cardOrderIds
+    //Xu lý vấn đề khi kéo thả card cuối cùng và để lại một column rỗng, cần xóa place holder card trc khi gửi lên BE
+    if (prevCardOrderIds[0].includes('placeholder-card')) {
+      prevCardOrderIds = []
+    }
+
     moveCardToDifferentColumnAPI({
       currentCardId,
       prevColumnId,
-      prevCardOrderIds: dndOrderedColumns.find(c => c._id === prevColumnId)?.cardOrderIds,
+      prevCardOrderIds,
       nextColumnId,
       nextCardOrderIds: dndOrderedColumns.find(c => c._id === nextColumnId)?.cardOrderIds
     })
