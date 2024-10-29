@@ -34,7 +34,8 @@ function BoardContent( {
   createNewCard,
   moveColumns,
   moveCardInTheSameColumn,
-  moveCardToDifferentColumn
+  moveCardToDifferentColumn,
+  deleteColumnDetails
 })
 {
   //Ask the mouse move 10px, the activate the event of drag and drop, fix the click the call the event
@@ -391,7 +392,7 @@ function BoardContent( {
           columns ={orderedColumns}
           createNewColumn ={createNewColumn}
           createNewCard = {createNewCard}
-          moveColumns = {moveColumns}
+          deleteColumnDetails = {deleteColumnDetails}
         />
         <DragOverlay dropAnimation={customDropAnimation}>
           {(!activeDragItemType) && null }
