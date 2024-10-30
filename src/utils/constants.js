@@ -1,3 +1,10 @@
 //export const API_ROOT = 'http://localhost:8000'
 
-export const API_ROOT = 'https://trello-api-zl6u.onrender.com'
+let apiRoot = ''
+if (process.env.NODE_ENV === 'dev') {
+  apiRoot = 'http://localhost:8000'
+}
+if (process.env.NODE_ENV === 'production') {
+  apiRoot = 'https://trello-api-zl6u.onrender.com'
+}
+export const API_ROOT = apiRoot
