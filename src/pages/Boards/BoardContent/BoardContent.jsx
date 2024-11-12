@@ -30,12 +30,9 @@ const ACTIVE_DRAG_ITEM_TYPE = {
 }
 function BoardContent( {
   board,
-  createNewColumn,
-  createNewCard,
   moveColumns,
   moveCardInTheSameColumn,
-  moveCardToDifferentColumn,
-  deleteColumnDetails
+  moveCardToDifferentColumn
 })
 {
   //Ask the mouse move 10px, the activate the event of drag and drop, fix the click the call the event
@@ -388,12 +385,7 @@ function BoardContent( {
         height: (theme) => theme.trello.boardContentHeight,
         p: '10px 0'
       }}>
-        <ListColumns
-          columns ={orderedColumns}
-          createNewColumn ={createNewColumn}
-          createNewCard = {createNewCard}
-          deleteColumnDetails = {deleteColumnDetails}
-        />
+        <ListColumns columns ={orderedColumns} />
         <DragOverlay dropAnimation={customDropAnimation}>
           {(!activeDragItemType) && null }
           {(activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN) && <Column column = {activeDragItemData}/>}

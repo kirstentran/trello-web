@@ -23,8 +23,19 @@ import { CSS } from '@dnd-kit/utilities'
 import TextField from '@mui/material/TextField'
 import CloseIcon from '@mui/icons-material/Close'
 import { useConfirm } from 'material-ui-confirm'
+import { createNewCardAPI, deleteColumnDetailsAPI } from '~/apis'
+import {
+  updateCurrentActiveBoard,
+  selectCurrentActiveBoard
+} from '~/redux/activeBoard/activeBoardSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { cloneDeep } from 'lodash'
 
-function Column( { column, createNewCard, deleteColumnDetails }) {
+function Column( { column }) {
+
+  const dispatch = useDispatch()
+  const board = useSelector(selectCurrentActiveBoard)
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: column._id,
     data: { ...column }
@@ -54,7 +65,7 @@ function Column( { column, createNewCard, deleteColumnDetails }) {
 
   const [newCardTitle, setNewCardTitle] = useState('')
 
-  const addNewCard = () => {
+  const addNewCard = async () => {
     if (!newCardTitle) {
       toast.error('Please enter card title!', { position: 'bottom-right' })
       return
@@ -65,7 +76,33 @@ function Column( { column, createNewCard, deleteColumnDetails }) {
       columnId: column._id
     }
 
-    createNewCard(newCardData)
+    //goi API tao moi card va lam lai du lieu state board
+    const createdCard = await createNewCardAPI({
+      ...newCardData,
+      boardId: board._id
+    })
+
+
+    //CAp nhat lai state board
+    //Chúng ta tự làm đúng lại state data board (thay vì phải gọi lại API fetchBoardDetailsAPI)
+    //Tuong tu nhu createNewColumn nên dùng cloneDeep
+
+    const newBoard = cloneDeep(board)
+    //Tim ra column chua no truoc roi moi cap nhat lai mang cards va cardOrderIds
+    const columnToUpdate = newBoard.columns.find(column => column._id === createdCard.columnId)
+    if (columnToUpdate) {
+      //Nếu column chưa có card nào thì xóa đi card place holder, vì bản chất làm FE cho column đang chứa 1 PLACEHOLDER
+      if (columnToUpdate.cards.some(card => card.FE_PlaceholderCard)) {
+        columnToUpdate.cards = [createdCard]
+        columnToUpdate.cardOrderIds = [createdCard._id]
+      } else {
+        columnToUpdate.cards.push(createdCard)
+        columnToUpdate.cardOrderIds.push(createdCard._id)
+      }
+    }
+
+    // setBoard(newBoard)
+    dispatch(updateCurrentActiveBoard(newBoard))
 
     //Dong lai trang thai them Card moi & clear input
     toggleOpenNewCardForm()
@@ -75,7 +112,7 @@ function Column( { column, createNewCard, deleteColumnDetails }) {
   //XỬ lý xóa 1 column và cards bên trong nó
   const confirmDeleteColumn = useConfirm()
   const handleDeleteColumn = () => {
-    confirmDeleteColumn({ 
+    confirmDeleteColumn({
       title: 'Delete this column?',
       description: 'This action will permanently delete your column and cards inside it! Are you sure?',
       confirmationText: 'Yes, delete it!',
@@ -97,8 +134,20 @@ function Column( { column, createNewCard, deleteColumnDetails }) {
       // buttonOrder: ['cancel', 'confirm']
     })
       .then(() => {
-        //Gọi lên props function deleteColumnDetails nằm ở component cha cao nhất
-        deleteColumnDetails (column._id)
+        //update chuản dữ liệu state board
+
+        //Tương tự xử lý chỗ hàm moveColumns nên sẽ k ảnh hưởng Redux Toolkit Immutability gì ở dây cả
+        const newBoard = { ...board }
+        // filter trong JS cũng tạo ra mảng mới (gióng array.concat), nên k ảnh hưởng gì đến Redux Toolkit Immutability
+        newBoard.columns = newBoard.columns.filter(c => c._id !== column._id)
+        newBoard.columnOrderIds = newBoard.columnOrderIds.filter(_id => _id !== column._id)
+        //setBoard(newBoard)
+        dispatch(updateCurrentActiveBoard(newBoard))
+
+        //gọi api xư lý phía backend
+        deleteColumnDetailsAPI(column._id).then(res => {
+          toast.success(res?.deleteResult)
+        })
       })
       .catch(() => {})
   }
